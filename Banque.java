@@ -1,40 +1,24 @@
 import java.util.List;
 
-public class Banque {
-    private MainJoueur main;
-    // private List<Carte> main;
+public final class Banque extends Joueur {
 
     public Banque() {
-        this.main = new MainJoueur();
+        super("Banque", 0);           // solde fictif
     }
 
-
-    public void recevoirCarte(Carte carte) {
-        if (carte != null) {
-            this.main.ajouterCarte(carte);
-        } else {
-            System.err.println("Tentative d'ajout d'une carte null à la main de la banque.");
-        }
+    /* stratégie : tirer (<17) sinon rester */
+    @Override
+    protected int choisirAction(List<Carte> main, Carte carteVisibleBanque) {
+        return valeurTotale() < 17 ? 1 : 2;   // 1 = HIT, 2 = STAND
     }
 
-
-    public boolean doitTirer() {
-        return this.main.valeurTotale() < 17;
+    /* (optionnel, pour compatibilité avec l’ancien code) */
+    public Joueur getMain() {                 // remplace l’ancienne méthode
+        return this;
     }
 
-
-    public void nouvelleMain() {
-        this.main = new MainJoueur();
-    }
-
-    public MainJoueur getMain() {
-        return main;
-    }
-
-
+    @Override
     public String toString() {
-
-        return "Banque: " + main.toString();
+        return "Banque : " + super.toString();
     }
-
 }
