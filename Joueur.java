@@ -59,9 +59,44 @@ public abstract class Joueur {
                     }
                     stand = true;
                 }
+                case 4  -> effectuerSplit(paquet);
                 default -> stand = true;        // toute saisie invalide → stand
             }
         }
+    }
+
+    private boolean peutSplitter() {
+        return cartes.size()==2
+                && cartes.get(0).getFace().equals(cartes.get(1).getFace())
+                && peutMiser(mise);
+    }
+
+    private void effectuerSplit(Paquet paquet) {
+        if (!peutSplitter()) return;
+
+        // ↓ Préparation des deux mises
+        solde -= mise;                      // même mise pour la deuxième main
+        List<Carte> main2 = new ArrayList<>();
+        main2.add(cartes.remove(1));        // extrait la 2ᵉ carte
+
+        // ↓ On complète chacune des deux mains avec une carte du sabot
+        this.recevoirCarte(paquet.tirerCarte());
+        main2.add(paquet.tirerCarte());
+
+        /* ---------- Main n°1 ---------- */
+        stand = false;                      // relance la boucle jouerTour()
+        jouerTour(paquet);                  // joue normalement la 1ʳᵉ main
+
+        /* ---------- Main n°2 ---------- */
+        List<Carte> sauvegarde = new ArrayList<>(cartes);   // garde la main 1 pour l’affichage final
+        cartes.clear();
+        cartes.addAll(main2);
+        stand = false;
+        jouerTour(paquet);                  // joue la 2ᵉ main
+
+        /* ---------- Fin ---------- */
+        cartes.clear();
+        cartes.addAll(sauvegarde);          // ré-affiche la 1ʳᵉ main dans le résumé
     }
 
     /* ---------- à spécialiser ---------- */
@@ -71,12 +106,22 @@ public abstract class Joueur {
     public void crediter(double facteur) { solde += mise * facteur; }
     public String getNom()               { return nom; }
     public double getSolde()             { return solde; }
+
+    /*  à placer juste après getSolde() … */
+    public List<Carte> getCartes() {      // <<< NOUVEAU
+        return cartes;
+    }
+
+
     public boolean isStand()             { return stand; }
 
     @Override public String toString() {
         return "%s  %s (valeur : %d)  mise : %.2f€  solde : %.2f€"
                 .formatted(nom, cartes, valeurTotale(), mise, solde);
     }
+
+
+
 
     /* ---------- réinitialisation entre deux manches ---------- */
     public void nouvelleMain() {
