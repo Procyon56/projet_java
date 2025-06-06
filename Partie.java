@@ -1,12 +1,16 @@
 import java.util.*;
 
 /**
- * Boucle principale d’un Black-Jack simplifié :
+ * Boucle principale d’un Black‑Jack simplifié :
  * – un sabot mélangé à chaque manche
  * – aucune gestion du split / assurance
  * – Blackjack payé 3:2
  *
- * Hypothèses :
+ * Particularité demandée : on ignore complètement un Black‑Jack initial
+ * éventuel de la banque ; seuls les Black‑Jacks naturels des joueurs sont
+ * signalés, et ces joueurs ne disputent alors pas leur tour.
+ *
+ * Hypothèses :
  *   • Joueur possède nouvelleMain(), miser(), recevoirCarte(), jouerTour(), etc.
  *   • Banque expose nouvelleMain(), recevoirCarte(Carte) et getMain()
  *     où getMain() renvoie un objet ayant valeurTotale(), estBuste(), aBlackjack(), getCartes().
@@ -15,9 +19,9 @@ public class Partie {
 
     /* --- État de la partie -------------------------------------------- */
     private final List<Joueur> joueurs;   // participants encore solvables
-    private final Banque banque;          // croupier
-    private Paquet paquet;                // sabot courant
-    private final Scanner in;             // entrée unique pour tout le programme
+    private final Banque       banque;    // croupier
+    private       Paquet       paquet;    // sabot courant
+    private final Scanner      in;        // entrée unique pour tout le programme
 
     /* --- Construction -------------------------------------------------- */
     public Partie(List<Joueur> joueurs) {
@@ -43,11 +47,12 @@ public class Partie {
             distribuerCartesInitiales();
             afficherMainsInitiales();
 
-            boolean banqueBJ = verifierBlackjacksInitiaux();
-            if (!banqueBJ) {                             // sinon la banque gagne d’emblée
-                tourJoueurs();
-                tourBanque();
-            }
+            // ↓ Ne vérifie QUE les Black‑Jacks des joueurs
+            verifierBlackjacksInitiaux();
+
+            // ↓ Partie normale
+            tourJoueurs();
+            tourBanque();
 
             evaluerResultats();
             afficherSoldes();
@@ -111,21 +116,24 @@ public class Partie {
                 System.out.printf("%s : %s%n", j.getNom(), j));
     }
 
-    /* ---------- ÉTAPE 5 : blackjacks initiaux ------------------------- */
-    private boolean verifierBlackjacksInitiaux() {
-        boolean banqueBJ = banque.getMain().aBlackjack();
-        if (banqueBJ) System.out.println(">>> La banque a BLACKJACK !");
-
-        for (Joueur j : joueurs)
+    /* ---------- ÉTAPE 5 : Black‑Jacks initiaux des JOUEURS ------------ */
+    /**
+     * Signale les Black‑Jacks naturels des joueurs (2 cartes = 21) et marque
+     * implicitement ces joueurs comme « satisfaits » pour que leur tour soit
+     * sauté dans {@link #tourJoueurs()}.
+     */
+    private void verifierBlackjacksInitiaux() {
+        for (Joueur j : joueurs) {
             if (j.aBlackjack())
                 System.out.printf(">>> %s a BLACKJACK !%n", j.getNom());
-
-        return banqueBJ;
+        }
     }
 
     /* ---------- ÉTAPE 6 : tour des joueurs ---------------------------- */
     private void tourJoueurs() {
         for (Joueur j : joueurs) {
+            if (j.aBlackjack()) continue;             // main déjà gagnante : on passe
+
             System.out.printf("%n----- Tour de %s -----%n", j.getNom());
             j.jouerTour(paquet);
         }
@@ -141,8 +149,8 @@ public class Partie {
 
     /* ---------- ÉTAPE 8 : évaluation ---------------------------------- */
     private void evaluerResultats() {
-        int  vBanque   = banque.getMain().valeurTotale();
-        boolean bust   = banque.getMain().estBuste();
+        int     vBanque = banque.getMain().valeurTotale();
+        boolean bust    = banque.getMain().estBuste();
 
         System.out.println("\n-------------- RÉSULTATS --------------");
         for (Joueur j : joueurs) {
@@ -157,7 +165,7 @@ public class Partie {
             else if (v < vBanque)  { verdict = "perdu";  facteur = 0; }
             else                   { verdict = "push";   facteur = 1; }
 
-            // Blackjack naturel payé 3:2
+            // Blackjack naturel payé 3:2 (toujours considéré ici)
             if (j.aBlackjack() && facteur == 2)
                 facteur = 2.5;
 
